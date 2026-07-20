@@ -1,0 +1,4 @@
+logs/
+structured/
+raw/incoming/*
+!raw/incoming/.gitkeep
