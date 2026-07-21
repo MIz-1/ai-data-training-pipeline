@@ -1,0 +1,2 @@
+{"source": "test5.log:0", "text": "unclear what happened during the sync job", "label": "ambiguous", "raw_hash": "32e601c148279807"}
+{"source": "test6.log:0", "text": "not sure if this counts as resolved or not", "label": "ambiguous", "raw_hash": "dc533ba3fb02f362"}

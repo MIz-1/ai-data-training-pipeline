@@ -1,0 +1,3 @@
+{"source": "test4.json:0", "text": "{\"text\": \"payment failed", "label": "failure", "raw_hash": "f5da9b4321cbeb9d"}
+{"source": "test2.json:0", "text": "error was fixed successfully, no more crashes", "label": "failure", "raw_hash": "8da50effcb016fc6", "labeled_by": "human"}
+{"source": "test1.log:0", "text": "customer emailed [EMAIL_REDACTED] and called [PHONE_REDACTED] about [CARD_REDACTED]", "label": "success", "raw_hash": "63c98f4a1fb2b398", "labeled_by": "human"}

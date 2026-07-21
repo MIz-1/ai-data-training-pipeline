@@ -25,3 +25,23 @@ Mon Jul 20 11:51:10 AM PKT 2026: DUPLICATE skipped -> data1.json (987e04d5...)
 
 ## Next
 M2 — cleaning, labeling, HITL gate for ambiguous/sensitive rows, PII scrub.
+
+## M2: Cleaning, Labeling, HITL Review, PII Scrub
+
+Rule-based labeling (failure/success/ambiguous) with PII redaction (email/phone/card)
+and a human-in-the-loop review queue for ambiguous or sensitive rows.
+
+### Bugs found and fixed during testing
+1. Reruns silently destroyed prior human labels — clean_label.py rebuilt output
+   files from scratch every run with no memory of past HITL decisions. Fixed by
+   tracking a content hash per row; unchanged rows are now preserved as-is.
+2. Skipped rows resurrected on every rerun — a row discarded via HITL had no
+   persistent record, so the next ingestion run treated it as brand new. Fixed
+   by logging skip decisions with a content hash and checking that log before
+   reprocessing.
+3. Content that genuinely changes after being labeled/skipped is correctly
+   detected and re-queued for fresh review, rather than staying stuck.
+
+### Scripts
+- `scripts/clean_label.py` — ingest, scrub PII, rule-based label, rerun-safe
+- `scripts/approve_labels.py` — human review of ambiguous/sensitive rows
