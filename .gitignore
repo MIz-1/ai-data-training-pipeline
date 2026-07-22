@@ -2,3 +2,5 @@ logs/
 structured/
 raw/incoming/*
 !raw/incoming/.gitkeep
+__pycache__/
+near_dupe_clusters.json
