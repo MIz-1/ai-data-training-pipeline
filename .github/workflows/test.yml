@@ -1,0 +1,35 @@
+name: Run Pipeline Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install datasketch
+
+      - name: Syntax check all scripts
+        run: |
+          python -m py_compile scripts/*.py
+
+      - name: Run clean_label.py (smoke test)
+        run: |
+          python scripts/clean_label.py
+
+      - name: Run dedup_near.py (smoke test)
+        run: |
+          python scripts/dedup_near.py
