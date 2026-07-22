@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+PIPELINE_VERSION = "v2-luhn-boundaries"
 import json
 import re
 import csv
@@ -19,30 +20,46 @@ CLEANED_DIR.mkdir(parents=True, exist_ok=True)
 LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}")
-PHONE_RE = re.compile(r"\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b")
-CARD_RE = re.compile(r"\bcard ending \d{4}\b", re.IGNORECASE)
+PHONE_RE = re.compile(r"(?<!\d)(?:\+\d{1,3}[ -]?)?\(?\d{3}\)?[ .-]?\d{3}[ .-]?\d{4}(?!\d)")
+CARD_RE = re.compile(r"\b(?:\d[ -]?){13,19}\b")
+CARD_PHRASE_RE = re.compile(r"\bcard ending \d{4}\b", re.IGNORECASE)
 
 FAIL_WORDS = {"error", "fail", "failed", "crash", "crashed", "fatal", "timeout"}
 SUCCESS_WORDS = {"success", "ok", "completed successfully", "shipped", "no issues", "working fine"}
 
 
 def raw_hash(text):
-    return hashlib.sha256(text.encode()).hexdigest()[:16]
+    return hashlib.sha256((PIPELINE_VERSION + text).encode()).hexdigest()[:16]
 
+
+def _luhn_valid(digits):
+    digits = [int(d) for d in digits if d.isdigit()]
+    if len(digits) < 13:
+        return False
+    checksum = 0
+    reverse = digits[::-1]
+    for i, d in enumerate(reverse):
+        if i % 2 == 1:
+            d *= 2
+            if d > 9:
+                d -= 9
+        checksum += d
+    return checksum % 10 == 0
 
 def scrub_pii(text, source_id, log_lines):
-    def _redact(pattern, label, s):
+    def _redact(pattern, label, s, validate=None):
         def repl(m):
+            if validate and not validate(m.group(0)):
+                return m.group(0)
             h = hashlib.sha256(m.group(0).encode()).hexdigest()[:10]
             log_lines.append(f"{datetime.now(timezone.utc).isoformat()} | {source_id} | {label} | hash={h}")
             return f"[{label}_REDACTED]"
         return pattern.sub(repl, s)
     text = _redact(EMAIL_RE, "EMAIL", text)
+    text = _redact(CARD_RE, "CARD", text, validate=_luhn_valid)
+    text = _redact(CARD_PHRASE_RE, "CARD", text)
     text = _redact(PHONE_RE, "PHONE", text)
-    text = _redact(CARD_RE, "CARD", text)
     return text
-
-
 def rule_label(text):
     lower = text.lower()
     has_fail = any(w in lower for w in FAIL_WORDS)
@@ -129,6 +146,16 @@ def main():
             continue
 
         if source_id in known and known[source_id].get("raw_hash") == h:
+            unchanged_count += 1
+            continue
+
+        if source_id in known and known[source_id].get("labeled_by") == "human":
+            preserved = dict(known[source_id])
+            preserved["raw_hash"] = h
+            if source_id in existing_labeled:
+                final_labeled[source_id] = preserved
+            else:
+                final_queue[source_id] = preserved
             unchanged_count += 1
             continue
 
