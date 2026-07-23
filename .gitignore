@@ -4,3 +4,5 @@ raw/incoming/*
 !raw/incoming/.gitkeep
 __pycache__/
 near_dupe_clusters.json
+raw_data/
+*.zip
